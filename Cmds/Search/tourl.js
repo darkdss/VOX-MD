@@ -13,24 +13,20 @@ module.exports = async (context) => {
         return m.reply("❌ *Reply to an image or video to generate a URL!*");
     }
 
-    try {
-        // Notify the user that upload is starting
-        await client.sendMessage(m.chat, {
-            text: "⏳ *Uploading your media... Please wait!*"
-        });
+    // Notify user that upload is in progress
+    await client.sendMessage(m.chat, { text: "⏳ *Uploading your media... Please wait!*" });
 
-        // Download the media
+    let filePath;
+    try {
+        // Download media
         let mediaBuffer = await q.download();
         if (!mediaBuffer) throw new Error("❌ *Failed to download media!*");
 
         // Create a temporary file
-        let filePath = createTempFile(mediaBuffer, mime);
+        filePath = createTempFile(mediaBuffer, mime);
 
-        // Upload the media
+        // Upload media and get URL
         const mediaUrl = await uploadMedia(filePath, mime);
-
-        // Delete the temporary file
-        fs.unlinkSync(filePath);
 
         // Construct response message
         const caption = `🌍 *Upload Successful!*\n\n🔗 *URL:* ${mediaUrl}\n\n✨ _Powered by VOX-MD_`;
@@ -39,13 +35,19 @@ module.exports = async (context) => {
         await client.sendMessage(m.chat, { text: caption }, { quoted: m });
 
     } catch (error) {
-        console.error("Upload Error:", error.message);
+        console.error("Upload Error:", error);
         m.reply(`❌ *Error:* ${error.message}`);
+    } finally {
+        // Ensure temporary file is deleted
+        if (filePath && fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
     }
 };
 
 function createTempFile(buffer, mime) {
-    let filePath = `./temp_${Date.now()}.${mime.split("/")[1]}`;
+    let extension = mime.split("/")[1] || "tmp";
+    let filePath = `./temp_${Date.now()}.${extension}`;
     fs.writeFileSync(filePath, buffer);
     return filePath;
 }
@@ -65,9 +67,9 @@ async function uploadMedia(filePath, mime) {
 
     const result = await response.json();
 
-    if (result.status !== 200 || !result.result) {
-        throw new Error("❌ *Failed to upload media!* API did not return a valid response.");
+    if (!result || result.status !== 200 || !result.result) {
+        throw new Error("❌ *Failed to upload media!* API error.");
     }
 
     return result.result;
-                        }
+}
