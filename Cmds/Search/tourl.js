@@ -4,7 +4,7 @@ const FormData = require("form-data");
 
 module.exports = async (context) => {
     const { client, m } = context;
-    
+
     // Check if media is quoted
     let q = m.quoted ? m.quoted : m;
     let mime = (q.msg || q).mimetype || "";
@@ -24,32 +24,15 @@ module.exports = async (context) => {
         if (!mediaBuffer) throw new Error("❌ *Failed to download media!*");
 
         // Create a temporary file
-        let filePath = `./temp_${Date.now()}.${mime.split("/")[1]}`;
-        fs.writeFileSync(filePath, mediaBuffer);
-
-        // Prepare form data
-        let formData = new FormData();
-        formData.append("file", fs.createReadStream(filePath), {
-            filename: filePath.split("/").pop(),
-            contentType: mime
-        });
+        let filePath = createTempFile(mediaBuffer, mime);
 
         // Upload the media
-        const response = await fetch("https://fastrestapis.fasturl.cloud/downup/uploader-v1", {
-            method: "POST",
-            headers: { accept: "application/json" },
-            body: formData
-        });
+        const mediaUrl = await uploadMedia(filePath, mime);
 
-        const result = await response.json();
-        fs.unlinkSync(filePath); // Delete temporary file
-
-        if (result.status !== 200 || !result.result) {
-            throw new Error("❌ *Failed to upload media!* API did not return a valid response.");
-        }
+        // Delete the temporary file
+        fs.unlinkSync(filePath);
 
         // Construct response message
-        const mediaUrl = result.result;
         const caption = `🌍 *Upload Successful!*\n\n🔗 *URL:* ${mediaUrl}\n\n✨ _Powered by VOX-MD_`;
 
         // Send the response
@@ -60,3 +43,31 @@ module.exports = async (context) => {
         m.reply(`❌ *Error:* ${error.message}`);
     }
 };
+
+function createTempFile(buffer, mime) {
+    let filePath = `./temp_${Date.now()}.${mime.split("/")[1]}`;
+    fs.writeFileSync(filePath, buffer);
+    return filePath;
+}
+
+async function uploadMedia(filePath, mime) {
+    let formData = new FormData();
+    formData.append("file", fs.createReadStream(filePath), {
+        filename: filePath.split("/").pop(),
+        contentType: mime
+    });
+
+    const response = await fetch("https://fastrestapis.fasturl.cloud/downup/uploader-v1", {
+        method: "POST",
+        headers: { accept: "application/json" },
+        body: formData
+    });
+
+    const result = await response.json();
+
+    if (result.status !== 200 || !result.result) {
+        throw new Error("❌ *Failed to upload media!* API did not return a valid response.");
+    }
+
+    return result.result;
+                        }
