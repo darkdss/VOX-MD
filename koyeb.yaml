@@ -1,0 +1,19 @@
+name: vox-md
+regions:
+  - fra
+services:
+  - name: bot-service
+    type: web
+    ports:
+      - 3000
+    instance:
+      plan: nano
+    env:
+      - name: NODE_ENV
+        value: production
+    build:
+      commands:
+        - npm install
+    run:
+      commands:
+        - node index.js
