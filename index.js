@@ -257,7 +257,7 @@ return trueFileName;
 
 app.use(express.static("public"));
 app.get("/", (req, res) => res.sendFile(__dirname + "/index.html"));
-app.listen(8000, () => console.log("🚀 Server listening on: http://localhost:" + 8000));
+app.listen(port, () => console.log("🚀 Server listening on: http://localhost:" + port));
 
 startvoxmd();
 
