@@ -38,7 +38,7 @@ const path = require('path');
 const sessionName = path.join(__dirname, '..', 'session');
 const { smsg } = require("./smsg");
 const { autoview, presence, autoread, botname, autobio, mode, prefix, dev, autolike } = require("./settings");
-const { commands, totalCommands } = require("./VoxMdhandler");
+const { commands, totalCommands,aliases } = require("./VoxMdhandler");
 const groupEvents = require("./groupEvents.js");
 
 async function startvoxmd() {
