@@ -361,8 +361,12 @@ Easily deploy **VOX-MD** to Heroku by clicking the button below:
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://dashboard.heroku.com/new?template=https://github.com/Vox-Net/VOX-MD)  
 
 ---
+## 🔹 Step 3: Deploy VOX-MD to Koyeb  
+Easily deploy **VOX-MD** to Koyeb by clicking the button below:  
 
-## 🔹 Step 3: Configuration  
+[![Deploy](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?repository=https://github.com/Vox-Net/VOX-MD)
+
+## 🔹 Step 4: Configuration  
 Once deployed, set up your **.env variables** as required:
 ## 🥷 here are the env variables or you can make changes in settings if not using deployment app 
 ```.env
