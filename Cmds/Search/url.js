@@ -1,54 +1,50 @@
-const axios = require('axios'); const FormData = require('form-data'); const fs = require('fs'); const path = require('path');
+const fetch = require("node-fetch"); const FormData = require("form-data"); const fs = require("fs"); const path = require("path");
 
-module.exports = async function uploadFile(filePath) { const form = new FormData(); const fileType = path.extname(filePath).toLowerCase(); let contentType;
-
-switch (fileType) {
-    case '.jpg':
-    case '.jpeg':
-        contentType = 'image/jpeg';
-        break;
-    case '.png':
-        contentType = 'image/png';
-        break;
-    case '.gif':
-        contentType = 'image/gif';
-        break;
-    case '.mp4':
-        contentType = 'video/mp4';
-        break;
-    case '.mov':
-        contentType = 'video/quicktime';
-        break;
-    default:
-        throw new Error('Unsupported file format');
-}
-
-form.append('url', fs.readFileSync(filePath).toString('base64'), {
-    filename: path.basename(filePath),
-    contentType,
-});
+module.exports = async (context) => { const { client, m, quoted } = context;
 
 try {
-    const response = await axios.post(
-        'https://fastrestapis.fasturl.cloud/downup/uploader-v1',
-        form,
-        {
-            headers: {
-                ...form.getHeaders(),
-                'accept': 'application/json',
-                'Content-Type': 'multipart/form-data',
-            },
-        }
-    );
-    
-    if (response.status === 200) {
-        return response.data;
-    } else {
-        throw new Error(`Unexpected response status: ${response.status}`);
+    if (!quoted || !quoted.mimetype) {
+        return m.reply("Reply to an image, audio, video, GIF, or WebP with .url to upload.");
     }
+    
+    const media = await quoted.download();
+    const filePath = `./tempfile.${quoted.mimetype.split("/")[1]}`;
+    fs.writeFileSync(filePath, media);
+    
+    const fileType = path.extname(filePath).toLowerCase().replace(".", "");
+    const allowedTypes = ["jpeg", "jpg", "png", "gif", "webp", "mp4", "mp3", "wav", "ogg"];
+    if (!allowedTypes.includes(fileType)) {
+        fs.unlinkSync(filePath);
+        return m.reply("Unsupported file type.");
+    }
+
+    const formData = new FormData();
+    formData.append("file", fs.createReadStream(filePath), {
+        filename: path.basename(filePath),
+        contentType: quoted.mimetype
+    });
+
+    const response = await fetch("https://fastrestapis.fasturl.cloud/downup/uploader-v1", {
+        method: "POST",
+        headers: formData.getHeaders(),
+        body: formData
+    });
+
+    fs.unlinkSync(filePath);
+    
+    if (!response.ok) {
+        throw new Error(`Failed to upload file: HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (!result || !result.url) {
+        throw new Error("Invalid response from server.");
+    }
+    
+    await client.sendMessage(m.chat, { text: `🌐 *Uploaded File URL:* ${result.url}` }, { quoted: m });
 } catch (error) {
-    console.error('Upload failed:', error.response?.data || error.message);
-    throw error;
+    console.error("Upload error:", error.message);
+    m.reply(`Error: ${error.message}`);
 }
 
 };
