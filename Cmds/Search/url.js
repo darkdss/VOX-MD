@@ -1,19 +1,20 @@
-const fetch = require("node-fetch"); 
-const FormData = require("form-data"); 
-const fs = require("fs"); const path = require("path");
+const fetch = require("node-fetch");
+const FormData = require("form-data"); const fs = require("fs"); const path = require("path");
 
-module.exports = async (context) => { const { client, m, quoted } = context;
+module.exports = async (context) => { const { client, m, text, quoted } = context;
 
 try {
+    if (!text || text !== ".url") return; // Ensure it only triggers on ".url"
+    
     if (!quoted || !quoted.mimetype) {
         return m.reply("Reply to an image, audio, video, GIF, or WebP with .url to upload.");
     }
     
     const media = await quoted.download();
-    const filePath = `./tempfile.${quoted.mimetype.split("/")[1]}`;
+    const fileType = quoted.mimetype.split("/")[1];
+    const filePath = `./tempfile.${fileType}`;
     fs.writeFileSync(filePath, media);
     
-    const fileType = path.extname(filePath).toLowerCase().replace(".", "");
     const allowedTypes = ["jpeg", "jpg", "png", "gif", "webp", "mp4", "mp3", "wav", "ogg"];
     if (!allowedTypes.includes(fileType)) {
         fs.unlinkSync(filePath);
