@@ -1,51 +1,62 @@
-const axios = require("axios");
-const FormData = require("form-data");
+const fetch = require("node-fetch");
 const fs = require("fs");
-const path = require("path");
-
-const UPLOAD_URL = "https://fastrestapis.fasturl.cloud/downup/uploader-v1";
+const FormData = require("form-data");
 
 module.exports = async (context) => {
-    const { client, m, quoted, text } = context;
+    const { client, m } = context;
+    
+    // Check if media is quoted
+    let q = m.quoted ? m.quoted : m;
+    let mime = (q.msg || q).mimetype || "";
 
-    if (!text || text.trim() !== ".url") {
-        return m.reply("❌ Please use the command correctly. Reply to an image, audio, video, GIF, or WebP with `.url` to upload and get a link.");
+    if (!mime) {
+        return m.reply("❌ *Reply to an image or video to generate a URL!*");
     }
-
-    if (!quoted || !quoted.mimetype) {
-        return m.reply("❌ Please reply to an image, audio, video, GIF, or WebP with `.url` to upload and get a link.");
-    }
-
-    await m.reply("🔄 *Uploading file... Please wait...*");
 
     try {
-        const media = await quoted.download();
-        const fileType = quoted.mimetype.split("/")[1];
-        const filePath = `./tempfile.${fileType}`;
-        fs.writeFileSync(filePath, media);
+        // Notify the user that upload is starting
+        await client.sendMessage(m.chat, {
+            text: "⏳ *Uploading your media... Please wait!*"
+        });
 
-        const formData = new FormData();
+        // Download the media
+        let mediaBuffer = await q.download();
+        if (!mediaBuffer) throw new Error("❌ *Failed to download media!*");
+
+        // Create a temporary file
+        let filePath = `./temp_${Date.now()}.${mime.split("/")[1]}`;
+        fs.writeFileSync(filePath, mediaBuffer);
+
+        // Prepare form data
+        let formData = new FormData();
         formData.append("file", fs.createReadStream(filePath), {
-            filename: path.basename(filePath),
-            contentType: quoted.mimetype
+            filename: filePath.split("/").pop(),
+            contentType: mime
         });
 
-        let response = await axios.post(UPLOAD_URL, formData, {
-            headers: formData.getHeaders()
+        // Upload the media
+        const response = await fetch("https://fastrestapis.fasturl.cloud/downup/uploader-v1", {
+            method: "POST",
+            headers: { accept: "application/json" },
+            body: formData
         });
 
-        fs.unlinkSync(filePath);
+        const result = await response.json();
+        fs.unlinkSync(filePath); // Delete temporary file
 
-        if (!response.data || !response.data.url) {
-            return m.reply("❌ Upload failed. Please try again later.");
+        if (result.status !== 200 || !result.result) {
+            throw new Error("❌ *Failed to upload media!* API did not return a valid response.");
         }
 
-        let fileUrl = response.data.url;
-        let fileMessage = `🌐 *Uploaded File URL:* ${fileUrl}`;
+        // Construct response message
+        const mediaUrl = result.result;
+        const caption = `🌍 *Upload Successful!*\n\n🔗 *URL:* ${mediaUrl}\n\n✨ _Powered by VOX-MD_`;
 
-        await m.reply(fileMessage);
+        // Send the response
+        await client.sendMessage(m.chat, { text: caption }, { quoted: m });
+
     } catch (error) {
         console.error("Upload Error:", error.message);
-        return m.reply("⚠️ An error occurred while uploading. Please try again later.");
+        m.reply(`❌ *Error:* ${error.message}`);
     }
 };
