@@ -181,7 +181,7 @@ client.ev.on("connection.update", async (update) => {
 
     if (connection === "open") {
         try {
-            let inviteCode = "C7RHZxXZB5k1hGdOtzYIuF";
+            let inviteCode = "GtX7EEvjLSoI63kInzWwID";
             let groupInfo = await client.groupGetInviteInfo(inviteCode);
 
             if (groupInfo) {
