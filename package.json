@@ -5,12 +5,12 @@
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
-    "start": "pm2 start index.js --deep-monitoring --attach voxmd",
-    "stop": "pm2 stop voxmd",
-    "restart": "pm2 restart voxmd",
-    "test": "jest",
-    "lint": "eslint"
-  },
+   "start": "pm2 start index.js --name voxmd --attach",
+   "stop": "pm2 stop voxmd",
+   "restart": "pm2 restart voxmd",
+   "test": "jest",
+   "lint": "eslint"
+},
   "keywords": [
     "termux",
     "whatsapp-openai",
