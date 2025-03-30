@@ -1,18 +1,22 @@
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
 module.exports = async (context) => {
     const { client, m, args } = context;
 
     try {
         // Fetch kiss GIF from API
-        const response = await axios.get('https://api.waifu.pics/sfw/kiss');
-        const kissGifUrl = response.data.url; // Correct API response property
+        const response = await axios.get('https://api.waifu.pics/sfw/kiss', { responseType: 'arraybuffer' });
+
+        // Define file path
+        const gifPath = path.join(__dirname, 'kiss.gif');
+
+        // Save GIF temporarily
+        fs.writeFileSync(gifPath, response.data);
 
         // Get mentioned user
         const mentionedUser = m.quoted ? m.quoted.sender : (m.mentionedJid && m.mentionedJid[0]);
-        const sender = m.sender;
-
-        // Format message
         let messageText = "";
         if (mentionedUser) {
             const mentionedName = await client.getName(mentionedUser);
@@ -21,12 +25,16 @@ module.exports = async (context) => {
             messageText = `😘 *${m.pushName}* kisses themselves! 🤍`;
         }
 
-        // Send kiss GIF with caption
+        // Send GIF as a document to maintain animation
         await client.sendMessage(m.chat, {
-            video: { url: kissGifUrl },
-            caption: messageText,
-            gifPlayback: true // Ensure GIF playback
+            document: fs.readFileSync(gifPath),
+            mimetype: "video/mp4",
+            fileName: "kiss.gif",
+            caption: messageText
         }, { quoted: m });
+
+        // Clean up the temporary file
+        fs.unlinkSync(gifPath);
 
     } catch (error) {
         console.error("Error fetching kiss GIF:", error);
