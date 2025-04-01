@@ -201,11 +201,9 @@ client.ev.on("connection.update", async (update) => {
                 const getCurrentTimeInNairobi = () =>
                     DateTime.now().setZone("Africa/Nairobi").toFormat("hh:mm a");
 
-                let message = `╭═══💠 *VOX-MD BOT* 💠═══╮\n`;
-                message += `┃   _*BOT STATUS*_: Online✅\n`;
+                let message = `╭═══💠 *VOX-MD CONNECTED ✅* 💠═══╮\n`;
                 message += `┃ 🔓 *MODE:* ${mode.toUpperCase()}\n`;
                 message += `┃ 📝 *PREFIX:* ${prefix}\n`;
-                message += `┃ ⚙️ *COMMANDS:* ${totalCommands}\n`;
                 message += `╰═══〘 *KANAMBO* 〙═══╯\n\n`;
                 message += `✨ ${getGreeting()},am using *VOX-MD*! 🚀\n`;
 
