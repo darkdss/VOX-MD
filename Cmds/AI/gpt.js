@@ -19,28 +19,29 @@ module.exports = async (context) => {
         console.log("Primary API failed:", error);
     }
 
-    // If primary API fails, switch to the fallback API
+    // If primary API fails, use the fallback API
     if (!response) {
         try {
             const fallbackUrl = `https://api.dreaded.site/api/chatgpt?text=${encodeURIComponent(text)}`;
             const fallbackData = await fetchJson(fallbackUrl);
 
-            if (fallbackData && fallbackData.result) {
+            // Check if the fallback API has a non-empty response
+            if (fallbackData && fallbackData.result && fallbackData.result.trim() !== "") {
                 response = fallbackData.result;
             } else {
-                console.log("Fallback API returned invalid data:", fallbackData);
+                console.log("Fallback API returned empty or invalid data:", fallbackData);
             }
         } catch (error) {
             console.log("Fallback API error:", error);
         }
     }
 
-    // Send the response with a slight delay
+    // Send the response with a delay
     if (response) {
         setTimeout(async () => {
             await m.reply(response);
-        }, Math.floor(Math.random() * (4000 - 2000 + 1)) + 2000); // 2-4 seconds delay
+        }, Math.floor(Math.random() * (4000 - 2000 + 1)) + 2000); // Random delay 2-4 seconds
     } else {
-        m.reply("Sorry, I couldn't process your request. Please try again later.");
+        m.reply("Sorry, I couldn't process your request. The AI response was empty.");
     }
 };
