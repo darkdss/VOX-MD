@@ -9,7 +9,7 @@ const { useMultiFileAuthState } = require("@whiskeysockets/baileys");
    // sessionBackupUtils = require("./scripts/session-backup");
 //} catch (error) {//
     // Session backup utilities not available, will use basic backup method
-}//
+//}//
 
 /**
  * Authenticate WhatsApp session
