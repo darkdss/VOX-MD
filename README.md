@@ -310,95 +310,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # **WELCOME TO VOX-MD** 
 <p align="center">
   <a href="https://git.io/typing-svg">
@@ -455,8 +366,6 @@ Easily deploy **VOX-MD** to Koyeb by clicking the button below:
 
 [![Deploy](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?repository=https://github.com/Vox-Net/VOX-MD)
 
----
-
 ## 🔹 Step 4: Configuration  
 Once deployed, set up your **.env variables** as required:
 ## 🥷 here are the env variables or you can make changes in settings if not using deployment app 
@@ -479,19 +388,7 @@ AUTOLIKE_STATUS="true"
 AUTOREAD="false"
 AUTOBIO="false"
 ```
----
-# ⚠️ **Disclaimer**  
 
-> 🚨 **Use at Your Own Risk!**  
-
-This bot utilizes **unofficial features** that **are not supported by WhatsApp**.  
-By using this bot, you **risk having your WhatsApp number banned**.  
-
-💀 **I am NOT responsible for any bans, restrictions, or consequences resulting from its use.**  
-
-### ❗ Proceed with caution!
-
------------------------------------------------
 
 ## 🌟 **Features of VOX-MD**  
 
@@ -503,6 +400,14 @@ By using this bot, you **risk having your WhatsApp number banned**.
 
 ---
 
+## 💻 **Installation & Usage**  
+
+```sh
+git clone https://github.com/Vox-Net/VOX-MD
+cd VOX-MD
+npm install
+node index.js
+```
 ## 📢 Join Our WhatsApp Community  
 Click the icon below to join our official WhatsApp group for updates and support!  
 

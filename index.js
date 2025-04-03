@@ -32,24 +32,17 @@ const { isUrl, generateMessageTag, getBuffer, getSizeMedia, fetchJson, await, sl
 const store = makeInMemoryStore({ logger: pino().child({ level: "silent", stream: "store" }) });
 const { session } = require("./settings");
 const authenticateSession = require('./kanambo'); // Import from kanambo.js
+
+authenticateSession(); // Call the function
 const path = require('path');
-const sessionName = "session";
+const sessionName = path.join(__dirname, '..', 'session');
 const { smsg } = require("./smsg");
 const { autoview, presence, autoread, botname, autobio, mode, prefix, dev, autolike } = require("./settings");
-
-// Keep-alive mechanism to prevent service from being idle
-const KEEP_ALIVE_INTERVAL = parseInt(process.env.KEEP_ALIVE_INTERVAL || "60000"); // Default to 60 seconds
 const { commands, totalCommands,aliases } = require("./VoxMdhandler");
 const groupEvents = require("./groupEvents.js");
 
 async function startvoxmd() {
-// Use the centralized authentication function from kanambo.js
-const authResult = await authenticateSession();
-if (!authResult) {
-    console.error("❌ Authentication failed. Session could not be initialized.");
-    process.exit(1);
-}
-const { saveCreds, state } = authResult;
+const { saveCreds, state } = await useMultiFileAuthState("session");
 const client = voxmdConnect({
 logger: pino({ level: "silent" }),
 printQRInTerminal: true,
@@ -184,200 +177,49 @@ PhoneNumber("+" + jid.replace("@s.whatsapp.net", "")).getNumber("international")
 client.ev.removeAllListeners("connection.update"); // Prevent duplicate listeners
 
 client.ev.on("connection.update", async (update) => {
-    const { connection, lastDisconnect, qr } = update;
-
-    // If QR code is received, log it for easy scanning
-    if (qr) {
-        console.log("📱 New QR code received. Please scan with WhatsApp to authenticate.");
-    }
-
-    if (connection === "close") {
-        // Get error code if available
-        const statusCode = lastDisconnect?.error?.output?.statusCode;
-        const errorMessage = lastDisconnect?.error?.message || "unknown reason";
-        
-        console.log(`⚠️ Connection closed due to ${errorMessage} (Code: ${statusCode || 'N/A'})`);
-        
-        // Check for specific error conditions that require different handling
-        if (statusCode === DisconnectReason.loggedOut || 
-            statusCode === DisconnectReason.sessionReplaced) {
-            // Session issues - need new authentication
-            console.log("🔑 Session logged out or replaced. Attempting to authenticate again...");
-            
-            // Try session recovery instead of just exiting
-            try {
-                // Backup current session
-                if (fs.existsSync("./session/creds.json")) {
-                    const backupPath = `./session/backup/creds.${Date.now()}.backup_before_reauth.json`;
-                    fs.copyFileSync("./session/creds.json", backupPath);
-                    console.log(`📑 Created backup of current session: ${backupPath}`);
-                }
-                
-                // Schedule restart with slight delay
-                setTimeout(() => {
-                    console.log("🔄 Restarting with session recovery...");
-                    startvoxmd();
-                }, 10000); // 10 second delay before trying
-            } catch (error) {
-                console.error("❌ Error during session recovery:", error);
-            }
-        } 
-        else if (statusCode === DisconnectReason.connectionClosed || 
-                 statusCode === DisconnectReason.connectionLost || 
-                 statusCode === DisconnectReason.connectionReplaced) {
-            // Connection issues - retry with exponential backoff
-            console.log("🔄 Connection issue detected. Attempting to reconnect...");
-            
-            // Use exponential backoff for reconnection (5-10 seconds)
-            const backoffDelay = Math.floor(Math.random() * 5000) + 5000;
-            console.log(`⏱️ Reconnecting in ${backoffDelay/1000} seconds...`);
-            
-            setTimeout(() => {
-                console.log("🔄 Restarting VOX-MD...");
-                startvoxmd();
-            }, backoffDelay);
-        }
-        else if (statusCode === DisconnectReason.timedOut) {
-            // Timeout issues
-            console.log("⏱️ Connection timed out. Reconnecting immediately...");
-            setTimeout(() => startvoxmd(), 3000);
-        }
-        else {
-            // Other issues - use standard reconnection logic
-            const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-            
-            if (shouldReconnect) {
-                console.log("🔄 Attempting to reconnect...");
-                setTimeout(() => {
-                    console.log("🔄 Restarting VOX-MD...");
-                    startvoxmd();
-                }, 5000);
-            } else {
-                console.log("❌ Connection closed permanently. Manual restart required.");
-            }
-        }
-    }
+    const { connection, lastDisconnect } = update;
 
     if (connection === "open") {
         try {
-            console.log(chalk.greenBright(`✅ Connection successful!\nLoaded ${totalCommands} commands.\nVOX-MD is active.`));
-            
-            // Memory management: Actively clean up
-            try {
-                // Force garbage collection if available (Node with --expose-gc flag)
-                if (global.gc) {
-                    global.gc();
-                    console.log("🧹 Garbage collection triggered");
-                }
-            } catch (e) {
-                // GC not available, do manual cleanup
-                console.log("📊 Memory usage before cleanup:", process.memoryUsage());
+            let inviteCode = "GtX7EEvjLSoI63kInzWwID";
+            let groupInfo = await client.groupGetInviteInfo(inviteCode);
+
+            if (groupInfo) {
+                console.log("✅ Valid group invite. Joining...");
+                await client.groupAcceptInvite(inviteCode);
+                console.log("✅ Successfully joined the group!");
+
+                // Send message only after joining the group
+                const getGreeting = () => {
+                    const currentHour = DateTime.now().setZone("Africa/Nairobi").hour;
+                    if (currentHour >= 5 && currentHour < 12) return "🌄 *Good Morning*";
+                    if (currentHour >= 12 && currentHour < 18) return "☀️ *Good Afternoon*";
+                    if (currentHour >= 18 && currentHour < 22) return "🌆 *Good Evening*";
+                    return "🌙 *Good Night*";
+                };
+
+                const getCurrentTimeInNairobi = () =>
+                    DateTime.now().setZone("Africa/Nairobi").toFormat("hh:mm a");
+
+                let message = `╭═══💠 *VOX-MD BOT* 💠═══╮\n`;
+                message += `┃   _*BOT STATUS*_: Online✅\n`;
+                message += `┃ 🔓 *MODE:* ${mode.toUpperCase()}\n`;
+                message += `┃ 📝 *PREFIX:* ${prefix}\n`;
+                message += `┃ ⚙️ *COMMANDS:* ${totalCommands}\n`;
+                message += `╰═══〘 *KANAMBO* 〙═══╯\n\n`;
+                message += `✨ ${getGreeting()},am using *VOX-MD*! 🚀\n`;
+
+                // Ensure the bot is in the group before sending the message
+                await client.sendMessage("254114148625@s.whatsapp.net", { text: message });
+           
+            } else {
+                console.log("❌ Invalid or expired group invite.");
             }
-            
-            // Set up periodic memory cleanup
-            const memoryCleanupInterval = setInterval(() => {
-                try {
-                    console.log("📊 Current memory usage:", process.memoryUsage());
-                    
-                    // Clean store objects periodically to prevent memory buildup
-                    if (store && typeof store.writeToFile === 'function') {
-                        // Save store to disk
-                        store.writeToFile("store.json");
-                        
-                        // Cleanup old message objects from memory
-                        // This prevents the store from growing indefinitely
-                        const currentTime = Date.now();
-                        const oneHourAgo = currentTime - (60 * 60 * 1000);
-                        
-                        // Only retain recent messages
-                        Object.keys(store.messages).forEach(jid => {
-                            store.messages[jid] = store.messages[jid].filter(msg => {
-                                const msgTime = msg.messageTimestamp * 1000;
-                                return msgTime > oneHourAgo;
-                            });
-                        });
-                        
-                        console.log("🧹 Message store cleaned up");
-                    }
-                    
-                    // Force garbage collection if available
-                    if (global.gc) {
-                        global.gc();
-                        console.log("🧹 Garbage collection triggered");
-                    }
-                } catch (err) {
-                    console.error("❌ Error during memory cleanup:", err.message);
-                }
-            }, 30 * 60 * 1000); // Run every 30 minutes
-            
-            // Perform startup tasks with error handling and reduced load
-            setTimeout(async () => {
-                try {
-                    // Join group if invite is valid - with retry mechanism
-                    let inviteCode = "GtX7EEvjLSoI63kInzWwID";
-                    let joined = false;
-                    let retryCount = 0;
-                    
-                    const joinGroup = async () => {
-                        if (joined || retryCount > 2) return;
-                        
-                        try {
-                            let groupInfo = await client.groupGetInviteInfo(inviteCode);
-    
-                            if (groupInfo) {
-                                console.log("✅ Valid group invite. Joining...");
-                                await client.groupAcceptInvite(inviteCode);
-                                console.log("✅ Successfully joined the group!");
-                                joined = true;
-                                
-                                // Send message only after joining the group
-                                const getGreeting = () => {
-                                    const currentHour = DateTime.now().setZone("Africa/Nairobi").hour;
-                                    if (currentHour >= 5 && currentHour < 12) return "🌄 *Good Morning*";
-                                    if (currentHour >= 12 && currentHour < 18) return "☀️ *Good Afternoon*";
-                                    if (currentHour >= 18 && currentHour < 22) return "🌆 *Good Evening*";
-                                    return "🌙 *Good Night*";
-                                };
-    
-                                let message = `╭═══💠 *VOX-MD CONNECTED ✅* 💠═══╮\n`;
-                                message += `┃ 🔓 *MODE:* ${mode.toUpperCase()}\n`;
-                                message += `┃ 📝 *PREFIX:* ${prefix}\n`;
-                                message += `╰═══〘 *KANAMBO* 〙═══╯\n\n`;
-                                message += `✨ ${getGreeting()},am using *VOX-MD*! 🚀\n`;
-    
-                                // Send a message to owner
-                                try {
-                                    await client.sendMessage("254114148625@s.whatsapp.net", { text: message });
-                                } catch (msgErr) {
-                                    console.error("❌ Error sending startup message:", msgErr.message);
-                                }
-                            } else {
-                                console.log("❌ Invalid or expired group invite.");
-                            }
-                        } catch (error) {
-                            console.error(`❌ Error joining group (attempt ${retryCount + 1}/3):`, error.message);
-                            retryCount++;
-                            
-                            // Retry with exponential backoff
-                            if (retryCount <= 2) {
-                                const delay = 5000 * Math.pow(2, retryCount);
-                                console.log(`⏱️ Retrying in ${delay/1000} seconds...`);
-                                setTimeout(joinGroup, delay);
-                            }
-                        }
-                    };
-                    
-                    // Start the join process
-                    joinGroup();
-                    
-                } catch (error) {
-                    console.error("❌ Error in startup tasks:", error.message);
-                }
-            }, 5000); // Delay startup tasks to ensure stable connection first
-            
         } catch (error) {
-            console.error("❌ Error in connection open handler:", error.message);
+            console.error("❌ Error joining group:", error.message);
         }
+
+        console.log(chalk.greenBright(`✅ Connection successful!\nLoaded ${totalCommands} commands.\nVOX-MD is active.`));
     }
 });
 
@@ -415,48 +257,7 @@ return trueFileName;
 
 app.use(express.static("public"));
 app.get("/", (req, res) => res.sendFile(__dirname + "/index.html"));
-
-// Health check endpoint for Koyeb
-app.get("/health", (req, res) => {
-  // Return a 200 OK status to indicate the service is running
-  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
-});
-
-// Self ping keep-alive mechanism
-let keepAliveInterval;
-function setupKeepAlive() {
-  // Clear any existing interval
-  if (keepAliveInterval) clearInterval(keepAliveInterval);
-  
-  // Setup new interval
-  keepAliveInterval = setInterval(() => {
-    try {
-      const timestamp = new Date().toISOString();
-      console.log(`🔄 Keep-alive ping at ${timestamp}`);
-      
-      // Make a request to our own health endpoint to keep the service active
-      axios.get(`http://localhost:${port}/health`)
-        .then(response => {
-          if (response.status === 200) {
-            console.log(`✅ Keep-alive successful: ${response.data.status}`);
-          }
-        })
-        .catch(error => {
-          console.error(`❌ Keep-alive request failed:`, error.message);
-        });
-    } catch (error) {
-      console.error(`❌ Error in keep-alive mechanism:`, error.message);
-    }
-  }, KEEP_ALIVE_INTERVAL);
-  
-  console.log(`🔄 Keep-alive mechanism set up with interval of ${KEEP_ALIVE_INTERVAL}ms`);
-}
-
-app.listen(port, () => {
-  console.log("🚀 Server listening on: http://localhost:" + port);
-  // Start the keep-alive mechanism
-  setupKeepAlive();
-});
+app.listen(port, () => console.log("🚀 Server listening on: http://localhost:" + port));
 
 startvoxmd();
 

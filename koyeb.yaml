@@ -11,17 +11,14 @@ services:
     ports:
       - 3000
 
-    # Instance plan - upgraded to xsmall for more memory and stability
+    # Instance plan, consider using a larger plan if needed
     instance:
-      plan: xsmall
+      plan: nano
 
     # Environment variables
     env:
       - name: NODE_ENV
         value: production
-      # Add Keep-Alive settings to prevent idle timeout
-      - name: KEEP_ALIVE_INTERVAL
-        value: "60000"
 
     # Build commands to install dependencies
     build:
@@ -33,9 +30,8 @@ services:
       commands:
         - node index.js
 
-    # Health check configuration
+    # Consider adding health check configuration
     health:
-      path: /health
-      interval: 30s
-      timeout: 3s
-      initial_delay: 20s
+    path: /health
+    interval: 30s
+    timeout: 3s
