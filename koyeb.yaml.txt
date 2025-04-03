@@ -1,0 +1,44 @@
+
+# Name of the application
+name: vox-md
+
+# Regions where the service will be deployed
+regions:
+  - fra
+
+services:
+  - name: bot-service
+    type: web
+    ports:
+      - 3000
+
+    # Instance plan - using micro for better uptime
+    instance:
+      plan: micro 
+
+    # Environment variables
+    env:
+      - name: NODE_ENV
+        value: production
+      - name: PM2_PUBLIC_KEY
+        value: "XXXX"
+      - name: PM2_PRIVATE_KEY  
+        value: "XXXX"
+
+    # Build commands
+    build:
+      commands:
+        - npm install
+        - npm install -g pm2
+
+    # Run commands with PM2 for process management
+    run:
+      commands:
+        - pm2-runtime start index.js --name vox-md
+
+    # Health check configuration
+    health:
+      path: /health
+      interval: 30s
+      timeout: 10s
+      initialDelay: 30s
