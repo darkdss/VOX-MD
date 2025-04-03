@@ -1,4 +1,3 @@
-
 # Name of the application
 name: vox-md
 
@@ -12,33 +11,31 @@ services:
     ports:
       - 3000
 
-    # Instance plan - using micro for better uptime
+    # Instance plan - upgraded to xsmall for more memory and stability
     instance:
-      plan: micro 
+      plan: xsmall
 
     # Environment variables
     env:
       - name: NODE_ENV
         value: production
-      - name: PM2_PUBLIC_KEY
-        value: "XXXX"
-      - name: PM2_PRIVATE_KEY  
-        value: "XXXX"
+      # Add Keep-Alive settings to prevent idle timeout
+      - name: KEEP_ALIVE_INTERVAL
+        value: "60000"
 
-    # Build commands
+    # Build commands to install dependencies
     build:
       commands:
         - npm install
-        - npm install -g pm2
 
-    # Run commands with PM2 for process management
+    # Run commands to start the service
     run:
       commands:
-        - pm2-runtime start index.js --name vox-md
+        - node index.js
 
     # Health check configuration
     health:
       path: /health
       interval: 30s
-      timeout: 10s
-      initialDelay: 30s
+      timeout: 3s
+      initial_delay: 20s
