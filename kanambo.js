@@ -4,12 +4,12 @@ const { session } = require("./settings");
 const { useMultiFileAuthState } = require("@whiskeysockets/baileys");
 
 // Optional: Import session backup utilities if available
-let sessionBackupUtils = null;
-try {
-    sessionBackupUtils = require("./scripts/session-backup");
-} catch (error) {
+//let sessionBackupUtils = null;
+//try {
+   // sessionBackupUtils = require("./scripts/session-backup");
+//} catch (error) {//
     // Session backup utilities not available, will use basic backup method
-}
+}//
 
 /**
  * Authenticate WhatsApp session
