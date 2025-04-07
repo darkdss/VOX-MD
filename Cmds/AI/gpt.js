@@ -1,20 +1,21 @@
 module.exports = async (context) => {
-    const { client, m, text, botname, fetchJson } = context;
+    const { m, text, fetchJson } = context;
 
     if (!text) {
         return m.reply("Provide some text or query for ChatGPT.");
     }
 
     try {
-        const data = await fetchJson(`https://fastrestapis.fasturl.cloud/aillm/gpt-4o-turbo?ask=${encodeURIComponent(text)}`);
+        const apiUrl = `https://api.dreaded.site/api/chatgpt?text=${encodeURIComponent(text)}`;
+        const data = await fetchJson(apiUrl);
 
-        if (data && data.result) {
-            const res = data.result;
-            await m.reply(res);
+        // Validate and send response
+        if (data?.result?.trim()) {
+            setTimeout(() => m.reply(data.result), Math.random() * 2000 + 2000); // 2-4s delay
         } else {
-            m.reply("Invalid response from API.");
+            m.reply("Sorry, I couldn't process your request.");
         }
-    } catch (error) {
-        m.reply("Something went wrong...\n\n" + error);
+    } catch {
+        m.reply("Something went wrong. Please try again later.");
     }
 };

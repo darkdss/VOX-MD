@@ -2,7 +2,7 @@
 /* VOX-MD - The Modern WhatsApp Bot */
 
 const {
-default: VOXMDConnect,
+default: voxmdConnect,
 useMultiFileAuthState,
 DisconnectReason,
 fetchLatestBaileysVersion,
@@ -38,16 +38,16 @@ const path = require('path');
 const sessionName = path.join(__dirname, '..', 'session');
 const { smsg } = require("./smsg");
 const { autoview, presence, autoread, botname, autobio, mode, prefix, dev, autolike } = require("./settings");
-const { commands, totalCommands } = require("./VoxMdhandler");
+const { commands, totalCommands,aliases } = require("./VoxMdhandler");
 const groupEvents = require("./groupEvents.js");
 
-async function startVOXMD() {
+async function startvoxmd() {
 const { saveCreds, state } = await useMultiFileAuthState("session");
-const client = VOXMDConnect({
+const client = voxmdConnect({
 logger: pino({ level: "silent" }),
 printQRInTerminal: true,
 version: [2, 3000, 1015901307],
-browser: ["VOX-MD", "Safari", "3.0"],
+browser: ["voxmd", "Safari", "3.0"],
 auth: state
 });
 
@@ -181,7 +181,7 @@ client.ev.on("connection.update", async (update) => {
 
     if (connection === "open") {
         try {
-            let inviteCode = "C7RHZxXZB5k1hGdOtzYIuF";
+            let inviteCode = "GtX7EEvjLSoI63kInzWwID";
             let groupInfo = await client.groupGetInviteInfo(inviteCode);
 
             if (groupInfo) {
@@ -259,9 +259,9 @@ app.use(express.static("public"));
 app.get("/", (req, res) => res.sendFile(__dirname + "/index.html"));
 app.listen(port, () => console.log("🚀 Server listening on: http://localhost:" + port));
 
-startVOXMD();
+startvoxmd();
 
-module.exports = startVOXMD
+module.exports = startvoxmd 
 
 let file = require.resolve(__filename);
 fs.watchFile(file, () => {

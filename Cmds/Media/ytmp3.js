@@ -18,10 +18,10 @@ module.exports = async (context) => {
         `https://api.vevioz.com/api/button/mp3?url=${link}`
     ];
 
-    async function fetchWithRetry(url, retries = 3, delay = 3000) {
+    async function fetchWithRetry(url, retries = 5, delay = 5000) {
         for (let i = 0; i < retries; i++) {
             try {
-                const response = await axios.get(url, { timeout: 10000 }); // 10s timeout
+                const response = await axios.get(url, { timeout: 30000 }); // 10s timeout
                 if (response.data && (response.data.status === 200 || response.data.success)) {
                     return response.data;
                 }

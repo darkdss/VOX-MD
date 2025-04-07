@@ -1,44 +1,50 @@
+const fetch = require("node-fetch");
+
 module.exports = async (context) => {
-    const { client, m, text, botname, fetchJson } = context;
+    const { client, botname, m, text, fetchJson } = context;
 
-    if (!text) {
-        return m.reply("Provide a facebook link for the video");
-    }
-
-    if (!text.includes("facebook.com")) {
-        return m.reply("That is not a facebook link.");
-    }
+    const fetchFacebookData = async (url, retries = 3) => {
+        for (let attempt = 0; attempt < retries; attempt++) {
+            const data = await fetchJson(url);
+            if (data && data.status === 200 && data.result && data.result.sd) {
+                return data.result;
+            }
+        }
+        throw new Error("Failed to fetch valid Facebook video data after multiple attempts.");
+    };
 
     try {
-                let data = await fetchJson(`https://api.dreaded.site/api/facebook?url=${text}`);
+        if (!text) return m.reply("Provide a Facebook link for the video.");
+        if (!text.includes("facebook.com")) return m.reply("That is not a valid Facebook link.");
 
+        const url = `https://fastrestapis.fasturl.cloud/downup/fbdown?url=${encodeURIComponent(text)}`;
+        const data = await fetchFacebookData(url);
 
-        if (!data || data.status !== 200 || !data.facebook || !data.facebook.sdVideo) {
-            return m.reply("We are sorry but the API endpoint didn't respond correctly. Try again later.");
+        const fbVideoUrl = data.sd || data.hd || "";
+        if (!fbVideoUrl) throw new Error("No downloadable video found.");
+
+        const fbTitle = data.title || "No title available";
+        const fbThumbnail = data.thumbnail || "";
+        
+        const caption = `📹 *Facebook Video*\n\n📌 *Title:* ${fbTitle}\n🔗 *Original Link:* ${data.url}`;
+
+        m.reply("Facebook video data fetched successfully! Sending...");
+
+        const response = await fetch(fbVideoUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to download video: HTTP ${response.status}`);
         }
 
+        const videoBuffer = Buffer.from(await response.arrayBuffer());
 
+        await client.sendMessage(m.chat, {
+            video: videoBuffer,
+            mimetype: "video/mp4",
+            caption: caption,
+            thumbnail: fbThumbnail ? { url: fbThumbnail } : null
+        }, { quoted: m });
 
-
-        const fbvid = data.facebook.sdVideo;
-        const title = data.facebook.title;
-
-
-        if (!fbvid) {
-            return m.reply("Invalid facebook data. Please ensure the video exists.");
-        }
-
-        await client.sendMessage(
-            m.chat,
-            {
-                video: { url: fbvid },
-                caption: `${title}\n\nDownloaded by ${botname}`,
-                gifPlayback: false,
-            },
-            { quoted: m }
-        );
-    } catch (e) {
-        console.error("Error occurred:", e);
-        m.reply("An error occurred. API might be down. Error: " + e.message);
+    } catch (error) {
+        m.reply(`Error: ${error.message}`);
     }
 };
